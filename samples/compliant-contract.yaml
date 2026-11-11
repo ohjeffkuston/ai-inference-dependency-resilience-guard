@@ -1,0 +1,65 @@
+service:
+  name: customer-support-inference
+  request_budget_ms: 2500
+  deadline_propagation: true
+  slo:
+    availability_percent: 99.9
+    error_budget_policy: https://runbooks.example/error-budget
+  telemetry:
+    traces: true
+    dependency_attributes: true
+    metrics:
+      - inference.request.duration
+      - inference.request.errors
+      - inference.retry.count
+      - inference.circuit_breaker.state
+      - inference.load_shed.count
+  privacy:
+    data_classification: confidential
+    allowed_regions: [us-east-1, us-west-2]
+dependencies:
+  - name: primary-llm
+    provider: provider-a
+    criticality: critical
+    timeout_ms: 1200
+    retry: {max_attempts: 2, backoff: exponential, jitter: true, budget_percent: 5}
+    circuit_breaker: {failure_threshold: 5, open_seconds: 30, half_open_requests: 2}
+    bulkhead: {max_concurrency: 100, max_queue: 25}
+    rate_limit_rps: 80
+    load_shed_percent: 90
+    backpressure: true
+    idempotency_key: true
+    request_deduplication: true
+    health_probe: {enabled: true, interval_seconds: 15}
+    fallback:
+      provider: provider-b
+      model: compact-fallback-v2
+      regions: [us-east-1]
+      data_classification: confidential
+  - name: vector-search
+    provider: internal
+    criticality: degradable
+    timeout_ms: 250
+    retry: {max_attempts: 2, backoff: exponential, jitter: true, budget_percent: 5}
+    circuit_breaker: {failure_threshold: 4, open_seconds: 20, half_open_requests: 1}
+    bulkhead: {max_concurrency: 50, max_queue: 10}
+    rate_limit_rps: 100
+    load_shed_percent: 85
+    backpressure: true
+    idempotency_key: true
+    request_deduplication: true
+    health_probe: {enabled: true, interval_seconds: 10}
+operations:
+  owner: ai-platform-sre
+  runbook: https://runbooks.example/inference-dependency
+  alert_route: pagerduty://ai-platform
+  dashboard: https://grafana.example/inference-resilience
+validation:
+  chaos_test:
+    last_run: 2026-11-05
+    passed: true
+    scenarios: [timeout, rate_limit, provider_outage]
+  load_test: {passed: true, p95_ms: 1800, success_percent: 99.95}
+  capacity_headroom_percent: 40
+  canary: {enabled: true, traffic_percent: 5, automatic_rollback: true}
+

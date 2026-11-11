@@ -1,0 +1,13 @@
+minimum_availability_percent: 99.9
+max_attempts: 3
+max_retry_budget_percent: 10
+max_chaos_age_days: 30
+minimum_capacity_headroom_percent: 30
+max_canary_percent: 10
+required_metrics:
+  - inference.request.duration
+  - inference.request.errors
+  - inference.retry.count
+  - inference.circuit_breaker.state
+  - inference.load_shed.count
+

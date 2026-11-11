@@ -1,0 +1,29 @@
+service:
+  name: fragile-inference
+  request_budget_ms: 2000
+  deadline_propagation: false
+  slo: {availability_percent: 99.0}
+  telemetry: {traces: false, metrics: []}
+  privacy: {data_classification: confidential, allowed_regions: [us-east-1]}
+dependencies:
+  - name: llm
+    provider: provider-a
+    criticality: critical
+    timeout_ms: 5000
+    retry: {max_attempts: 10, backoff: fixed, jitter: false, budget_percent: 80}
+    circuit_breaker: {failure_threshold: 0}
+    bulkhead: {max_concurrency: 0}
+    rate_limit_rps: 0
+    load_shed_percent: 0
+    backpressure: false
+    idempotency_key: false
+    request_deduplication: false
+    health_probe: {enabled: false}
+    fallback: {provider: provider-a, model: same, regions: [eu-west-1], data_classification: public}
+operations: {}
+validation:
+  chaos_test: {last_run: 2025-01-01, passed: false, scenarios: []}
+  load_test: {passed: false, p95_ms: 5000, success_percent: 90}
+  capacity_headroom_percent: 0
+  canary: {enabled: false, traffic_percent: 100, automatic_rollback: false}
+
